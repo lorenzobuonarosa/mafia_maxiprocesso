@@ -151,7 +151,7 @@
   /* ================= BLOCCO 1: big number ================= */
   function buildNumbers(N) {
     var items = [
-      { v: N.imputati_rinviati, l: "imputati rinviati a giudizio" },
+      { v: N.imputati_apertura, l: "imputati all'apertura del processo" },
       { v: N.condannati, l: "condannati" },
       { v: N.ergastoli, l: "ergastoli" },
       { v: N.anni_reclusione, l: "anni di reclusione complessivi" }
@@ -175,7 +175,7 @@
     var host = document.getElementById("wf");
     var erg = N.ergastoli, cond = N.condannati, ass = N.assolti, total = cond + ass;
     d3.select("#wf-sub").text("Sentenza della Corte d'assise di Palermo, 16 dicembre 1987. " + fmt(total) + " imputati giudicati");
-    d3.select("#wf-note").text("Imputati rinviati a giudizio: " + fmt(N.imputati_rinviati) + ". Il waffle mostra i " + fmt(total) + " giudicati con sentenza di condanna o di assoluzione.");
+    d3.select("#wf-note").text("All'apertura del processo gli imputati erano " + fmt(N.imputati_apertura) + ", poi scesi a " + fmt(total) + " durante il dibattimento. Il waffle mostra i " + fmt(total) + " giudicati.");
 
     var tip = R.tooltip(host);
     R.dismissOutside(host, function () { tip.hide(); setHi(null); });
