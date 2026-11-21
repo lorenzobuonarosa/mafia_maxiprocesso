@@ -33,5 +33,6 @@ Le didascalie di credito stanno nella colonna `credito` di `data/commissione-197
 | San Giuseppe Jato | `salamone.jpg` | fornita dalla redazione | credito da indicare |
 | Castronovo di Sicilia | `pizzuto.jpg` | fornita dalla redazione | credito da indicare |
 | Pagliarelli | `motisi.jpg` | fornita dalla redazione | credito da indicare |
+| Partanna | `riccobono.jpg` (bianco e nero, sfondo sfocato) | fornita dalla redazione | credito da indicare |
 
-Senza foto: Partanna (Riccobono).
+Tutti i dodici mandamenti hanno una foto; per quelle fornite dalla redazione manca ancora il credito.
