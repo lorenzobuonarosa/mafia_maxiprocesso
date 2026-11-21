@@ -17,7 +17,7 @@ Il `data_fine` disegna un segmento (le bombe del 1993).
 
 Le foto vengono da Wikimedia (file indicati come dominio pubblico dalla comunità, per lo più PD-Italy per fotografie semplici di oltre 20 anni).
 La provenienza originale è spesso un giornale o un sito: prima di usarle in pagina conviene che l'ufficio foto ne verifichi i diritti.
-Le didascalie di credito stanno nella colonna `credito` di `data/commissione-1978.csv`; i file nella colonna `foto` (più file separati da `|`).
+I crediti stanno nella colonna `credito` di `data/commissione-1978.csv` ma non sono mostrati nel pannello; i file nella colonna `foto` (più file separati da `|`).
 
 | Mandamento | File | File su Wikimedia | Licenza indicata |
 |---|---|---|---|
