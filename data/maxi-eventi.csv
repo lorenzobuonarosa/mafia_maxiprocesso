@@ -1,0 +1,27 @@
+data;data_fine;binario;fase;titolo;testo;principale;evidenza
+23/04/1981;;Cosa nostra;1;Ucciso Stefano Bontate;I Corleonesi di Totò Riina uccidono il capo della famiglia di Santa Maria di Gesù. Comincia la seconda guerra di mafia.;sì;no
+11/05/1981;;Cosa nostra;1;Ucciso Salvatore Inzerillo;Cade il secondo grande alleato della fazione che si oppone ai Corleonesi.;no;no
+30/04/1982;;Cosa nostra;1;Ucciso Pio La Torre;Il segretario regionale del Pci aveva proposto la legge sull'associazione mafiosa e sulla confisca dei beni.;no;no
+03/09/1982;;Cosa nostra;1;Ucciso Carlo Alberto Dalla Chiesa;Il prefetto di Palermo viene ucciso in via Carini, pochi mesi dopo il suo insediamento.;sì;no
+13/09/1982;;Stato;1;Legge Rognoni-La Torre;Nasce il reato di associazione di tipo mafioso (articolo 416-bis) e diventa possibile colpire i patrimoni dei clan.;sì;no
+29/07/1983;;Cosa nostra;1;Ucciso Rocco Chinnici;Un'autobomba uccide il capo dell'Ufficio istruzione di Palermo.;no;no
+01/11/1983;;Stato;2;Nasce il pool antimafia;Antonino Caponnetto prende la guida dell'Ufficio istruzione e riunisce un gruppo di giudici, tra cui Falcone e Borsellino, che lavorano insieme sulle indagini di mafia.;sì;no
+15/07/1984;;Stato;2;Buscetta parla con Falcone;Estradato dal Brasile, Tommaso Buscetta arriva a Roma e comincia a raccontare a Falcone la struttura di Cosa nostra.;sì;no
+29/09/1984;;Stato;2;Blitz di San Michele;Sulla base delle dichiarazioni di Buscetta scattano 366 ordini di custodia cautelare.;sì;no
+01/10/1984;;Stato;2;Collabora Salvatore Contorno;Un secondo pentito conferma il racconto di Buscetta.;no;no
+28/07/1985;;Cosa nostra;2;Ucciso Beppe Montana;Il commissario di polizia era un collaboratore stretto di Falcone e Borsellino.;no;no
+06/08/1985;;Cosa nostra;2;Ucciso Ninni Cassarà;Il vicequestore era un collaboratore stretto di Falcone e Borsellino.;no;no
+01/08/1985;;Stato;2;Falcone e Borsellino all'Asinara;Dopo gli omicidi di Montana e Cassarà, i due giudici vengono trasferiti con le famiglie nella foresteria del carcere dell'isola, dove finiscono di scrivere l'ordinanza-sentenza.;no;no
+08/11/1985;;Stato;2;Depositata l'ordinanza-sentenza;L'atto d'accusa rinvia a giudizio 476 imputati, scesi a 475 dopo la morte di Nino Salvo.;sì;no
+10/02/1986;;Stato;3;Comincia il Maxiprocesso;Si apre nell'aula bunker costruita accanto al carcere dell'Ucciardone. Presiede la Corte Alfonso Giordano, giudice a latere Pietro Grasso.;sì;no
+16/12/1987;;Stato;3;Sentenza di primo grado;La Corte d'assise accoglie l'impianto dell'accusa.;sì;no
+19/01/1988;;Stato;4;Meli preferito a Falcone;Il Csm nomina Antonino Meli capo dell'Ufficio istruzione al posto di Falcone. Il metodo del pool viene progressivamente abbandonato.;sì;no
+10/12/1990;;Stato;4;Sentenza d'appello;Le pene vengono ridotte e diverse condanne cadono: gli ergastoli scendono da 19 a 12, le pene detentive a 1.576 anni complessivi, e ci sono 86 nuove assoluzioni.;sì;no
+01/02/1991;;Stato;4;Falcone va a Roma;Accetta la proposta del ministro Claudio Martelli e diventa direttore degli Affari penali al ministero della Giustizia.;no;no
+30/01/1992;;Stato;5;La Cassazione conferma;La sesta sezione, presieduta da Arnaldo Valente e non dalla prima di Corrado Carnevale, conferma tutte le condanne.;sì;sì
+12/03/1992;;Cosa nostra;5;Ucciso Salvo Lima;L'eurodeputato della Dc viene ucciso a Mondello.;sì;sì
+23/05/1992;;Cosa nostra;5;Strage di Capaci;Muore Giovanni Falcone.;sì;sì
+19/07/1992;;Cosa nostra;5;Strage di via D'Amelio;Muore Paolo Borsellino.;sì;sì
+17/09/1992;;Cosa nostra;5;Ucciso Ignazio Salvo;Esattore e imprenditore legato a Cosa nostra, condannato nel Maxiprocesso.;no;no
+15/01/1993;;Cosa nostra;5;Arrestato Totò Riina;Il capo dei Corleonesi viene catturato a Palermo dopo quasi 24 anni di latitanza.;sì;no
+14/05/1993;28/07/1993;Cosa nostra;5;Le bombe del 1993;Gli attentati di Roma, Firenze, Milano e ancora Roma. Ne parliamo nell'approfondimento dedicato.;sì;no
