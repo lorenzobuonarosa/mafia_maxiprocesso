@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>La piramide raccontata da Buscetta – Radar QN</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,700&display=swap">
+<link rel="stylesheet" href="../assets/radar.css">
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="../assets/radar.js"></script>
+<style>
+  .stage-wrap { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 24px; align-items: start; margin-top: 12px; }
+  @media (max-width: 559px) { .stage-wrap { grid-template-columns: minmax(0, 1fr); gap: 14px; } }
+
+  /* controlli */
+  .ctrl { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 6px; }
+  .pds { display: flex; align-items: center; gap: 2px; }
+  .pd { appearance: none; border: 0; background: none; padding: 0; width: 22px; height: 28px; display: grid; place-items: center; cursor: pointer; }
+  .pd i { display: block; width: 9px; height: 9px; border-radius: 50%; background: transparent; border: 1.5px solid var(--grey-3); transition: background 180ms, border-color 180ms, transform 180ms; }
+  .pd.is-seen i { background: var(--blue-5); border-color: var(--blue-4); }
+  .pd.is-cur i { background: var(--blue); border-color: var(--blue); transform: scale(1.3); }
+  .pd:focus-visible, .btn:focus-visible, .stage:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  .btns { display: flex; gap: 8px; }
+  .btn { appearance: none; font: inherit; font-size: 13px; font-weight: 600; color: var(--ink); background: transparent; border: 1px solid var(--grey-3); border-radius: 3px; padding: 6px 14px; min-height: 34px; cursor: pointer; }
+  .btn:hover:not(:disabled) { border-color: var(--ink); }
+  .btn--go { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .btn:disabled { opacity: 0.35; cursor: default; }
+  .stage { position: relative; touch-action: pan-y; outline: none; }
+  .stage svg { display: block; overflow: visible; }
+  .stage text { font-family: inherit; }
+
+  /* riquadro del livello */
+  .panels { display: grid; }
+  .panel { grid-area: 1 / 1; visibility: hidden; opacity: 0; transition: opacity 250ms ease; border-top: 2px solid var(--ink); padding-top: 10px; }
+  .panel.is-on { visibility: visible; opacity: 1; }
+  .panel__n { font-size: 12px; color: var(--ink-2); margin: 0 0 2px; font-variant-numeric: tabular-nums; }
+  .panel__h { font-family: var(--serif); font-size: 21px; line-height: 1.15; font-weight: 700; color: var(--title); margin: 0 0 8px; }
+  .panel dl { margin: 0; }
+  .panel dt { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-2); margin: 8px 0 1px; }
+  .panel dd { margin: 0; font-size: 13.5px; line-height: 1.4; }
+  @media (max-width: 559px) { .panel__h { font-size: 19px; } }
+
+  .lab { font-size: 12px; font-weight: 600; fill: var(--ink); paint-order: stroke; stroke: var(--bg); stroke-width: 3px; stroke-linejoin: round; }
+
+  /* commissione 1978 */
+  .seat { cursor: pointer; }
+  .seat:focus { outline: none; }
+  .seat:focus-visible .seat__c { stroke: var(--ink); stroke-width: 2.5; }
+  .seat__name { font-size: 12px; font-weight: 500; fill: var(--ink); }
+  .seat__tag { font-size: 11px; font-weight: 600; fill: var(--ink-2); }
+  #com .r-tip { max-width: 250px; }
+</style>
+</head>
+<body>
+<main class="radar">
+  <header>
+    <h1 class="r-title"><span>La piramide raccontata da Buscetta</span><span>Dall'uomo d'onore alla Commissione</span></h1>
+    <p class="r-sub">La struttura di Cosa nostra descritta dal collaboratore di giustizia Tommaso Buscetta al giudice Giovanni Falcone dal luglio 1984, alla base dell'accusa del Maxiprocesso</p>
+  </header>
+
+  <!-- BLOCCO 1: la piramide, livello per livello -->
+  <section aria-label="La piramide, livello per livello" style="margin-top:26px">
+    <div class="stage-wrap">
+      <div>
+        <div class="ctrl">
+          <div class="pds" id="pds" role="group" aria-label="Passi dello schema"></div>
+          <div class="btns">
+            <button class="btn" id="prev" type="button">Indietro</button>
+            <button class="btn btn--go" id="next" type="button">Avanti</button>
+          </div>
+        </div>
+        <div class="stage" id="stage" tabindex="0" aria-label="Schema a pallini: usa le frecce o i pulsanti per cambiare livello"></div>
+      </div>
+      <div class="panels" id="panels" aria-live="polite"></div>
+    </div>
+    <p class="r-note">Schema illustrativo: il numero di affiliati e di famiglie varia. Secondo l'ordinanza-sentenza un mandamento riunisce tre o più famiglie territorialmente contigue.</p>
+  </section>
+
+  <!-- BLOCCO 2: la Commissione nel 1978 -->
+  <section aria-label="La Commissione nel 1978" style="margin-top:44px">
+    <p class="r-chart__head" style="margin-top:0">La Commissione nel 1978</p>
+    <p class="r-chart__sub">Un posto per ogni mandamento. In rosso Corleone, la fazione che vincerà la seconda guerra di mafia e prenderà il controllo della Commissione</p>
+    <figure class="r-chart" id="com" style="margin-top:8px"></figure>
+    <p class="r-note">Clicca o tocca un posto per vedere il mandamento e il capomandamento. Tra il 1981 e il 1983 la composizione cambia: i capi sconfitti nella guerra di mafia escono di scena e vengono sostituiti da uomini vicini ai Corleonesi.</p>
+  </section>
+
+  <footer class="r-foot">
+    <span>Fonte: Ordinanza-sentenza del Maxiprocesso di Palermo, vol. 5; Wikipedia</span>
+    <span>Elaborazione Radar – QN</span>
+  </footer>
+</main>
+
+<script>
+(function () {
+  "use strict";
+  var R = Radar;
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+
+  Promise.all([R.loadCSV("../data/struttura-livelli.csv"), R.loadCSV("../data/commissione-1978.csv")]).then(function (res) {
+    var levels = res[0].sort(function (a, b) { return R.num(a.ordine) - R.num(b.ordine); });
+    var seats = res[1];
+    var run = function () { buildPyramid(levels); buildCommission(seats); };
+    document.fonts && document.fonts.ready
+      ? Promise.race([document.fonts.ready, new Promise(function (r) { setTimeout(r, 1500); })]).then(run)
+      : run();
+  }).catch(function (e) { R.fail(".radar", e); });
+
+  /* ======================= BLOCCO 1 ======================= */
+  function buildPyramid(levels) {
+    var N = levels.length, cur = 0;
+    var host = document.getElementById("stage");
+
+    // ---- riquadri del livello (sovrapposti in una cella: l'altezza è quella del più alto) ----
+    var panels = d3.select("#panels").selectAll("div").data(levels).join("div").attr("class", "panel").attr("aria-hidden", "true");
+    panels.html(function (r, i) {
+      return '<p class="panel__n">Livello ' + (i + 1) + ' di ' + N + '</p>' +
+        '<h2 class="panel__h">' + esc(r.livello) + '</h2><dl>' +
+        '<dt>Chi lo sceglie</dt><dd>' + esc(r.chi_lo_sceglie) + '</dd>' +
+        '<dt>Com\'è composto</dt><dd>' + esc(r.composizione) + '</dd>' +
+        '<dt>Che cosa fa</dt><dd>' + esc(r.compiti) + '</dd></dl>';
+    });
+
+    // ---- pallini di avanzamento ----
+    var pds = d3.select("#pds").selectAll("button").data(levels).join("button")
+      .attr("class", "pd").attr("type", "button")
+      .attr("aria-label", function (r, i) { return "Passo " + (i + 1) + ": " + r.livello; })
+      .on("click", function (ev, r) { go(levels.indexOf(r)); });
+    pds.append("i");
+    var prev = d3.select("#prev").on("click", function () { go(cur - 1); });
+    var next = d3.select("#next").on("click", function () { go(cur + 1); });
+
+    // ---- scena in coordinate di layout (lu); i pallini finali stanno qui, la "camera" li inquadra ----
+    var MX = [-91, 0, 91], TB = { x: 0, y: -104 }, IT = { x: 0, y: -160 };
+    var SEAT = [{ x: -45, y: -92 }, { x: 0, y: -92 }, { x: 45, y: -92 }];
+    var REPS = [{ x: -28, y: -160 }, { x: 28, y: -160 }, { x: 0, y: -172 }, { x: 0, y: -148 }];
+    var A = { x: 0, y: -22.6 };
+    var ORIGIN = { 2: A, 3: { x: 0, y: -25.5 }, 4: { x: 0, y: -33 }, 5: { x: 0, y: -22 }, 6: TB };
+    var RB = { man: 1.5, capodecina: 2.5, rapp: 2.8, vice: 2.2, cons: 2.2, capoM: 2.8, rep: 2.2 };
+    var dots = [];
+    function add(role, x, y, first, extra) {
+      var d = { role: role, x: x, y: y, first: first, r: RB[role], o: ORIGIN[first] || A };
+      if (extra) Object.keys(extra).forEach(function (k) { d[k] = extra[k]; });
+      dots.push(d); return d;
+    }
+    MX.forEach(function (cx, m) {
+      [{ x: cx, y: -33, k: 0 }, { x: cx - 22, y: 0, k: 1 }, { x: cx + 22, y: 0, k: 2 }].forEach(function (f) {
+        [-13, 0, 13].forEach(function (off, di) {
+          var dx = f.x + off, dy = f.y;
+          var first = m === 1 ? (f.k === 0 ? (di === 1 ? 2 : 3) : 4) : 5;
+          var cd = add("capodecina", dx, dy, first);
+          if (m === 1 && f.k === 0 && di === 1) cd.isD0 = true;
+          for (var row = 0; row < 3; row++) for (var col = -1; col <= 1; col++) {
+            var isA = m === 1 && f.k === 0 && di === 1 && row === 1 && col === 0;
+            var mn = add("man", dx + col * 4.6, dy + 5.8 + row * 4.6, isA ? 1 : first);
+            if (isA) mn.isA = true;
+          }
+        });
+        var fh = m === 1 ? (f.k === 0 ? 3 : 4) : 5;
+        add("rapp", f.x, f.y - 11, fh, f.k === 0 && m === 1 ? { isRapp: true } : null);
+        add("vice", f.x - 6.5, f.y - 6.5, fh, f.k === 0 && m === 1 ? { isVice: true } : null);
+        add("cons", f.x + 6.5, f.y - 6.5, fh, f.k === 0 && m === 1 ? { isCons: true } : null);
+      });
+      add("capoM", cx, -54.5, m === 1 ? 4 : 5, { seat: SEAT[m], isCapo1: m === 1 });
+    });
+    REPS.forEach(function (p) { add("rep", p.x, p.y, 6); });
+    var COLOR = { man: "var(--grey-3)" };
+
+    function opac(d, s) {   // s = 1..N
+      if (s < d.first) return 0;
+      switch (d.role) {
+        case "man": return s === 1 ? 1 : 0.5;
+        case "capodecina": return s === 2 ? 1 : 0.42;
+        case "rapp": case "vice": case "cons": return s === 3 ? 1 : 0.42;
+        case "capoM": return (s === 4 || s === 5) ? 1 : 0.42;
+        case "rep": return 1;
+      }
+      return 1;
+    }
+    function posAt(d, s) { return (d.role === "capoM" && s >= 5) ? d.seat : d; }
+
+    // ---- camera ----
+    var CAM = [
+      { x: A.x, y: A.y, w: 10, h: 10 },
+      { x: 0, y: -25.5, w: 16, h: 18 },
+      { x: 0, y: -32.2, w: 42, h: 32 },
+      { x: 0, y: -21, w: 86, h: 78 },
+      { x: 0, y: -78, w: 268, h: 190 },
+      { x: 0, y: -78, w: 268, h: 190 }
+    ];
+    var W = 0, H = 0, PAD = 16, ZMAX = 7;
+    function cam(s) {
+      var c = CAM[s - 1];
+      var z = Math.min(ZMAX, (W - 2 * PAD) / c.w, (H - 2 * PAD) / c.h);
+      return { z: z, cx: c.x, cy: c.y };
+    }
+    function mp(p, c) { return { x: W / 2 + c.z * (p.x - c.cx), y: H / 2 + c.z * (p.y - c.cy) }; }
+
+    var svg, gDots, circles, gLab, gTab, tabP, tabI, links;
+    function target(d, s, c) {
+      if (s < d.first) { var o = mp(d.o, c); return { x: o.x, y: o.y, r: 0, op: 0 }; }
+      var p = mp(posAt(d, s), c);
+      return { x: p.x, y: p.y, r: d.r * c.z, op: opac(d, s) };
+    }
+
+    function tablesTarget(s, c) {
+      var tp = mp(TB, c), ip = mp(IT, c);
+      return {
+        tb: { x: tp.x, y: tp.y, rx: 52 * c.z, ry: 8 * c.z, op: s === 5 ? 1 : (s > 5 ? 0.4 : 0) , k: s >= 5 ? 1 : 0.2 },
+        it: { x: ip.x, y: ip.y, rx: 20 * c.z, ry: 6 * c.z, op: s === 6 ? 1 : 0, k: s >= 6 ? 1 : 0.2 }
+      };
+    }
+    function linkTargets(s, c) {
+      var out = [];
+      MX.forEach(function (cx, m) {
+        var a = mp({ x: cx, y: -57 }, c), b = mp(SEAT[m], c);
+        out.push({ x1: a.x, y1: a.y, x2: b.x, y2: b.y, op: s >= 5 ? (s === 5 ? 0.9 : 0.4) : 0 });
+      });
+      var a2 = mp({ x: 0, y: -112 }, c), b2 = mp({ x: 0, y: -148 }, c);
+      out.push({ x1: a2.x, y1: a2.y, x2: b2.x, y2: b2.y, op: s === 6 ? 0.9 : 0 });
+      return out;
+    }
+
+    // ---- etichette dirette del livello corrente ----
+    function labelsFor(s, c) {
+      var L = [];
+      function onDot(pred, lines, side) {
+        var d = dots.filter(pred)[0], p = mp(posAt(d, s), c), rr = d.r * c.z;
+        L.push({ x: p.x + (side === "l" ? -(rr + 7) : rr + 7), y: p.y + 4, lines: lines, anchor: side === "l" ? "end" : "start" });
+      }
+      if (s === 1) onDot(function (d) { return d.isA; }, ["Uomo d'onore"], "r");
+      if (s === 2) onDot(function (d) { return d.isD0 && d.role === "capodecina"; }, ["Capodecina"], "r");
+      if (s === 3) {
+        onDot(function (d) { return d.isRapp; }, ["Rappresentante"], "r");
+        onDot(function (d) { return d.isVice; }, ["Vice-capo"], "l");
+        onDot(function (d) { return d.isCons; }, ["Consigliere"], "r");
+      }
+      if (s === 4) onDot(function (d) { return d.isCapo1; }, ["Capomandamento"], "r");
+      if (s === 5) { var tp = mp({ x: 58, y: -104 }, c); L.push({ x: tp.x, y: tp.y - 2, lines: ["Commissione", "provinciale"], anchor: "start" }); }
+      if (s === 6) { var ip = mp({ x: 38, y: -160 }, c); L.push({ x: ip.x, y: ip.y - 2, lines: ["Commissione", "interprovinciale"], anchor: "start" }); }
+      return L;
+    }
+    function drawLabels(s, c, animate) {
+      gLab.selectAll("text").interrupt().remove();
+      labelsFor(s, c).forEach(function (l) {
+        var t = gLab.append("text").attr("class", "lab").attr("x", l.x).attr("y", l.y).attr("text-anchor", l.anchor);
+        l.lines.forEach(function (ln, k) { t.append("tspan").attr("x", l.x).attr("dy", k ? 14 : 0).text(ln); });
+        if (animate && R.DUR) t.style("opacity", 0).transition().delay(R.DUR * 0.55).duration(R.DUR * 0.4).style("opacity", 1);
+      });
+    }
+
+    // ---- applica il passo s (1..N) ----
+    function apply(s, animate, from) {
+      var c = cam(s), cf = cam(from || s);
+      var dur = animate ? R.DUR : 0;
+      circles.each(function (d) {
+        var tg = target(d, s, c), el = d3.select(this);
+        el.interrupt();
+        var appearing = animate && d.cur && d.cur.op === 0 && tg.op > 0;
+        if (appearing) { var o = mp(d.o, cf); el.attr("cx", o.x).attr("cy", o.y).attr("r", 0.1); }
+        d.cur = tg;
+        var tr = dur ? el.transition().duration(dur).ease(R.EASE) : el;
+        tr.attr("cx", tg.x).attr("cy", tg.y).attr("r", tg.r).style("opacity", tg.op);
+      });
+      var T = tablesTarget(s, c);
+      [[tabP, T.tb], [tabI, T.it]].forEach(function (pr) {
+        var el = pr[0].interrupt(), v = pr[1], tr = dur ? el.transition().duration(dur).ease(R.EASE) : el;
+        tr.attr("cx", v.x).attr("cy", v.y).attr("rx", v.rx).attr("ry", v.ry).style("opacity", v.op);
+      });
+      var LT = linkTargets(s, c);
+      links.each(function (_, i) {
+        var v = LT[i], el = d3.select(this).interrupt(), tr = dur ? el.transition().duration(dur).ease(R.EASE) : el;
+        tr.attr("x1", v.x1).attr("y1", v.y1).attr("x2", v.x2).attr("y2", v.y2).style("opacity", v.op);
+      });
+      drawLabels(s, c, animate);
+    }
+
+    function updateUI() {
+      pds.classed("is-cur", function (_, i) { return i === cur; }).classed("is-seen", function (_, i) { return i < cur; })
+        .attr("aria-current", function (_, i) { return i === cur ? "step" : null; });
+      prev.property("disabled", cur === 0); next.property("disabled", cur === N - 1);
+      panels.classed("is-on", function (_, i) { return i === cur; }).attr("aria-hidden", function (_, i) { return i === cur ? null : "true"; });
+      if (svg) svg.attr("aria-label", "Schema a pallini, livello " + (cur + 1) + " di " + N + ": " + levels[cur].livello);
+    }
+    function go(k) {
+      k = Math.max(0, Math.min(N - 1, k));
+      if (k === cur) return;
+      var from = cur + 1; cur = k;
+      updateUI();
+      if (svg) apply(cur + 1, true, from);
+    }
+
+    // ---- disegno (al cambio di larghezza si ridisegna nello stato corrente) ----
+    function draw(Wn) {
+      W = Wn;
+      var z6 = (W - 2 * PAD) / CAM[5].w;
+      H = Math.ceil(CAM[5].h * z6 + 2 * PAD);
+      d3.select(host).selectAll("svg").remove();
+      svg = d3.select(host).append("svg").attr("width", W).attr("height", H).attr("role", "img");
+      svg.append("title").text("Schema illustrativo della struttura di Cosa nostra, dall'uomo d'onore alla Commissione");
+      var defs = svg;
+      tabP = defs.append("ellipse").style("fill", "var(--red)").style("fill-opacity", 0.16).style("stroke", "var(--red)").attr("stroke-width", 1.5).style("opacity", 0);
+      tabI = defs.append("ellipse").style("fill", "none").style("stroke", "var(--red)").attr("stroke-width", 1.5).style("opacity", 0);
+      gTab = svg.append("g");
+      links = svg.append("g").selectAll("line").data([0, 1, 2, 3]).join("line").style("stroke", "var(--ink-2)").attr("stroke-width", 0.9).style("opacity", 0);
+      gDots = svg.append("g");
+      circles = gDots.selectAll("circle").data(dots).join("circle")
+        .style("fill", function (d) { return COLOR[d.role] || "var(--blue)"; })
+        .attr("r", 0).style("opacity", 0);
+      circles.each(function (d) { d.cur = null; });
+      gLab = svg.append("g").style("pointer-events", "none");
+      apply(cur + 1, false);
+
+      // swipe su mobile
+      var sx = null, sy = null;
+      svg.on("pointerdown", function (ev) { sx = ev.clientX; sy = ev.clientY; })
+        .on("pointerup pointercancel", function (ev) {
+          if (sx == null) return;
+          var dx = ev.clientX - sx, dy = ev.clientY - sy; sx = null;
+          if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) go(cur + (dx < 0 ? 1 : -1));
+        });
+      R.scheduleHeight();
+    }
+
+    d3.select(host).on("keydown", function (ev) {
+      if (ev.key === "ArrowRight") { ev.preventDefault(); go(cur + 1); }
+      else if (ev.key === "ArrowLeft") { ev.preventDefault(); go(cur - 1); }
+    });
+    updateUI();
+    R.responsive(host, function (w) { draw(w); });
+  }
+
+  /* ======================= BLOCCO 2 ======================= */
+  function buildCommission(rows) {
+    var host = document.getElementById("com");
+    var tip = R.tooltip(host);
+    var selected = null;
+    function clear() { tip.hide(); if (selected) { selected.classed("is-dimmed", false); selected = null; } }
+    R.dismissOutside(host, clear);
+
+    // il segretario (Ciaculli) al centro dell'arco, gli altri nell'ordine del CSV
+    var n = rows.length, iPres = Math.max(0, rows.findIndex(function (r) { return /segretario/i.test(r.ruolo); }));
+    var slotOf = function (i) { return (i - iPres + Math.floor(n / 2) - 1 + n * 2) % n; };
+    var data = rows.map(function (r, i) {
+      return { name: r.mandamento, boss: r.capomandamento, role: r.ruolo, i: i, slot: slotOf(i), corleone: /^corleone$/i.test(r.mandamento), pres: /segretario/i.test(r.ruolo) };
+    });
+
+    function html(d) {
+      var rowsT = [["Capomandamento", d.boss]];
+      var note = null;
+      if (d.pres) note = "Presiede la Commissione come " + d.role + ".";
+      if (d.corleone) note = "La fazione che vince la seconda guerra di mafia e prende il controllo della Commissione.";
+      return R.tipHTML({ title: "Mandamento di " + d.name, rows: rowsT, note: note });
+    }
+
+    R.responsive(host, function (W, phase) {
+      clear();
+      d3.select(host).select("svg").remove();
+      var narrow = W < 600, svg, H;
+      var ariaTxt = "Commissione provinciale di Palermo nel 1978: " + n + " posti, uno per mandamento. Presiede Michele Greco, capo del mandamento di Ciaculli. Il posto di Corleone è evidenziato in rosso.";
+
+      if (!narrow) {
+        var R0 = Math.min(W / 2 - 52, 320), cx = W / 2, cy = R0 + 36;
+        H = Math.ceil(cy + 62);
+        svg = d3.select(host).insert("svg", ".r-tip").attr("width", W).attr("height", H).attr("role", "img").attr("aria-label", ariaTxt);
+        svg.append("title").text("La Commissione provinciale di Cosa nostra nel 1978");
+        var arc = d3.arc().innerRadius(R0 - 5).outerRadius(R0 + 5).startAngle(-Math.PI / 2).endAngle(Math.PI / 2);
+        svg.append("path").attr("transform", "translate(" + cx + "," + cy + ")").attr("d", arc()).style("fill", "var(--grey-5)");
+        var step = Math.PI / n;
+        data.forEach(function (d) {
+          var th = Math.PI - (d.slot + 0.5) * step;
+          d.x = cx + R0 * Math.cos(th); d.y = cy - R0 * Math.sin(th);
+        });
+      } else {
+        var rowsN = Math.ceil(n / 2), cell = 50, colW = (W) / 2;
+        H = rowsN * cell + 6;
+        svg = d3.select(host).insert("svg", ".r-tip").attr("width", W).attr("height", H).attr("role", "img").attr("aria-label", ariaTxt);
+        svg.append("title").text("La Commissione provinciale di Cosa nostra nel 1978");
+        data.forEach(function (d) {
+          var k = d.slot; d.col = k % 2; d.row = Math.floor(k / 2);
+          d.x = d.col * colW + 16; d.y = d.row * cell + cell / 2 + 3;
+        });
+      }
+
+      var g = svg.append("g").selectAll("g").data(data).join("g").attr("class", "seat").attr("tabindex", 0).attr("role", "button")
+        .attr("aria-label", function (d) { return "Mandamento " + d.name + ": " + d.boss; });
+      g.each(function (d, i) {
+        var s = d3.select(this);
+        if (d.pres) s.append("circle").attr("cx", d.x).attr("cy", d.y).attr("r", 17).style("fill", "none").style("stroke", "var(--ink)").attr("stroke-width", 1.25);
+        s.append("circle").attr("class", "seat__c").attr("cx", d.x).attr("cy", d.y).attr("r", 11)
+          .style("fill", d.corleone ? "var(--red)" : "var(--blue)").style("stroke", "var(--bg)").attr("stroke-width", 2);
+        var name = s.append("text").attr("class", "seat__name");
+        if (!narrow) {
+          name.attr("x", d.x).attr("y", d.y + 28).attr("text-anchor", "middle").text(d.name).call(R.wrap, 74, 1.25);
+          if (d.pres) s.append("text").attr("class", "seat__tag").attr("x", d.x).attr("y", d.y - 25).attr("text-anchor", "middle").text("presiede");
+        } else {
+          name.attr("x", d.x + 24).attr("y", d.y - (d.pres ? 3 : -4)).text(d.name);
+          if (d.pres) s.append("text").attr("class", "seat__tag").attr("x", d.x + 24).attr("y", d.y + 13).text("presiede");
+        }
+        s.append("circle").attr("cx", d.x).attr("cy", d.y).attr("r", 24).style("fill", "transparent");
+        if (phase !== "static") {
+          s.style("opacity", 0);
+          if (phase === "play") s.transition().delay(i * 45).duration(350).style("opacity", 1).on("end", function () { d3.select(this).style("opacity", null); });
+        }
+      });
+      function open(ev, d) {
+        if (ev.stopPropagation) ev.stopPropagation();
+        clear();
+        selected = g; g.classed("is-dimmed", function (o) { return o !== d; });
+        tip.show(html(d), d.x, d.y);
+      }
+      g.on("pointerdown", open).on("keydown", function (ev, d) { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); open(ev, d); } });
+      svg.on("pointerdown", function (ev) { if (!ev.target.closest(".seat")) clear(); });
+    });
+  }
+})();
+</script>
+</body>
+</html>
