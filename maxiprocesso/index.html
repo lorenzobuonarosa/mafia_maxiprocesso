@@ -35,6 +35,26 @@
   .tl-card__meta { font-size: 12px; color: var(--ink-2); margin: 0 0 3px; }
   .tl-card__txt { margin: 4px 0 0; font-size: 13px; line-height: 1.4; }
   .tl-card__ph { margin-top: 7px; padding-top: 5px; border-top: 1px solid var(--rule); font-size: 12px; color: var(--ink-2); }
+
+  /* controlli della timeline */
+  .ctrl { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 14px 0 0; }
+  .tl-range { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; flex: 1; text-align: center; }
+  .pds { display: flex; align-items: center; gap: 2px; }
+  .pd { appearance: none; border: 0; background: none; padding: 0; width: 22px; height: 28px; display: grid; place-items: center; cursor: pointer; }
+  .pd i { display: block; width: 9px; height: 9px; border-radius: 50%; background: transparent; border: 1.5px solid var(--grey-3); transition: background 180ms, border-color 180ms, transform 180ms; }
+  .pd.is-seen i { background: var(--blue-5); border-color: var(--blue-4); }
+  .pd.is-cur i { background: var(--blue); border-color: var(--blue); transform: scale(1.3); }
+  .pd:focus-visible, .btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  .btns { display: flex; gap: 8px; }
+  .btn { appearance: none; font: inherit; font-size: 13px; font-weight: 600; color: var(--ink); background: transparent; border: 1px solid var(--grey-3); border-radius: 3px; padding: 6px 14px; min-height: 34px; cursor: pointer; }
+  .btn:hover:not(:disabled) { border-color: var(--ink); }
+  .btn--go { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .btn:disabled { opacity: 0.35; cursor: default; }
+  @media (max-width: 519px) { .tl-range { display: none; } }
+  /* carosello su mobile: una pagina ogni tre anni */
+  .tl-car { display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
+  .tl-car::-webkit-scrollbar { display: none; }
+  .tl-pg { flex: 0 0 auto; scroll-snap-align: start; scroll-snap-stop: always; }
   #wf .val-label { font-size: 12px; }
   #wf .sq { transition: opacity 160ms ease; }
 </style>
@@ -60,9 +80,17 @@
   <!-- BLOCCO 2: la timeline -->
   <section aria-label="Cronologia 1981-1993" style="margin-top:44px">
     <p class="r-chart__head" style="margin-top:0">Le mosse dello Stato e le risposte di Cosa nostra</p>
-    <p class="r-chart__sub">Fatti principali, dal gennaio 1981 al dicembre 1993</p>
+    <p class="r-chart__sub">Fatti principali, dal gennaio 1981 al dicembre 1993, a finestre di tre anni</p>
     <figure class="r-chart" id="tl" style="margin-top:12px"></figure>
-    <p class="r-note">Clicca o tocca un punto per aprire la scheda. In rosso gli snodi della svolta stragista.</p>
+    <div class="ctrl ctrl--tl">
+      <div class="pds" id="tl-pds" role="group" aria-label="Finestre di tre anni"></div>
+      <span class="tl-range" id="tl-range" aria-live="polite"></span>
+      <div class="btns">
+        <button class="btn" id="tl-prev" type="button">Indietro</button>
+        <button class="btn btn--go" id="tl-next" type="button">Avanti</button>
+      </div>
+    </div>
+    <p class="r-note">Clicca o tocca un punto per aprire la scheda. In rosso gli snodi della svolta stragista. Con Avanti e Indietro passi ai tre anni successivi o precedenti; da telefono basta scorrere di lato.</p>
   </section>
 
   <footer class="r-foot">
@@ -230,11 +258,17 @@
     });
   }
 
-  /* ================= BLOCCO 2: timeline ================= */
+  /* ================= BLOCCO 2: timeline a finestre di tre anni ================= */
+  // 1981-83, 1984-86, 1987-89, 1990-92 e il 1993 (13 anni non si dividono in tre)
+  var PAGES = [1981, 1984, 1987, 1990, 1993].map(function (y, i, a) {
+    var yEnd = i < a.length - 1 ? a[i + 1] : 1994;
+    return { s: new Date(y, 0, 1), e: new Date(yEnd, 0, 1), ny: yEnd - y, label: yEnd - y > 1 ? y + "–" + (yEnd - 1) : String(y) };
+  });
+
   function buildTimeline(events) {
     var host = document.getElementById("tl");
     var tip = R.tooltip(host);
-    var selRing = null;
+    var selRing = null, pg = 0, lastW = 0, drawNow = function () {};
     function closeCard() { tip.hide(); if (selRing) { selRing.remove(); selRing = null; } }
     R.dismissOutside(host, closeCard);
 
@@ -253,17 +287,17 @@
     function labelCls(e) { return "tl-lab" + (e.ev ? " is-ev" : ""); }
 
     // fasi: ogni fase comincia al primo evento che ne fa parte (la prima all'inizio dell'asse)
-    var phaseStart = { 1: T0 };
+    var phaseStart = { 1: PAGES[0].s };
     [2, 3, 4, 5].forEach(function (p) {
       var ds = events.filter(function (e) { return e.fase === p; }).map(function (e) { return e.date; });
-      phaseStart[p] = ds.length ? d3.min(ds) : T1;
+      phaseStart[p] = ds.length ? d3.min(ds) : PAGES[PAGES.length - 1].e;
     });
-    var bands = [1, 2, 3, 4, 5].map(function (p) { return { p: p, s: phaseStart[p], e: p === 5 ? T1 : phaseStart[p + 1], name: FASI[p] }; });
-
-    var nS = events.filter(function (e) { return e.track === "Stato"; }).length;
-    var nC = events.length - nS;
-
-    // colore del punto
+    var bands = [1, 2, 3, 4, 5].map(function (p) { return { p: p, s: phaseStart[p], e: p === 5 ? PAGES[PAGES.length - 1].e : phaseStart[p + 1], name: FASI[p] }; });
+    function bandsFor(p) {
+      return bands.map(function (b, i) { return { i: i, p: b.p, name: b.name, s: b.s < p.s ? p.s : b.s, e: b.e > p.e ? p.e : b.e }; })
+        .filter(function (b) { return b.s < b.e; });
+    }
+    function eventsFor(p) { return events.filter(function (e) { return e.date >= p.s && e.date < p.e; }); }
     function dotFill(e) { return e.ev ? "var(--red)" : (e.track === "Stato" ? "var(--blue)" : "var(--grey-dark)"); }
 
     // schiva i punti troppo vicini sullo stesso binario spostandoli di lato
@@ -283,8 +317,8 @@
     function conflict(c, p, poles) {
       if (c.a < p.a + p.span && p.a < c.a + c.span && c.x0 < p.x1 + 4 && p.x0 < c.x1 + 4) return true;
       if (!poles) return false;
-      if (p.a < c.a + c.span && p.x0 - 3 <= c.xl && c.xl <= p.x1 + 3) return true;   // il mio palo taglia la sua etichetta
-      if (c.a < p.a + p.span && c.x0 - 3 <= p.xl && p.xl <= c.x1 + 3) return true;   // il suo palo taglia la mia
+      if (p.a < c.a + c.span && p.x0 - 3 <= c.xl && c.xl <= p.x1 + 3) return true;
+      if (c.a < p.a + p.span && c.x0 - 3 <= p.xl && p.xl <= c.x1 + 3) return true;
       return false;
     }
     function greedy(order, anchors, W, poles) {
@@ -323,7 +357,7 @@
           if (!best || score < best.score) best = { score: score, res: res };
         }
       }
-      if (!best) {   // ripiego: solo etichette senza sovrapposizioni
+      if (!best) {
         var anch = {};
         items.forEach(function (it) { anch[it.id] = it.canS ? "S" : "E"; });
         best = { res: greedy(chrono, anch, W, false) || [] };
@@ -333,25 +367,43 @@
       return out;
     }
 
-    var tl = null;
-    function draw(W, phase) {
-      closeCard();
-      d3.select(host).select("svg.tl-svg").remove();
-      if (R.isNarrow(W)) drawNarrow(W, phase); else drawDesktop(W, phase);
+    // ---- controlli: pallini, Indietro / Avanti, intervallo ----
+    var NP = PAGES.length;
+    var pds = d3.select("#tl-pds").selectAll("button").data(PAGES).join("button")
+      .attr("class", "pd").attr("type", "button")
+      .attr("aria-label", function (p) { return "Anni " + p.label; })
+      .on("click", function (ev, p) { go(PAGES.indexOf(p)); });
+    pds.append("i");
+    var prevB = d3.select("#tl-prev").on("click", function () { go(pg - 1); });
+    var nextB = d3.select("#tl-next").on("click", function () { go(pg + 1); });
+    function updateUI() {
+      pds.classed("is-cur", function (_, i) { return i === pg; }).classed("is-seen", function (_, i) { return i < pg; })
+        .attr("aria-current", function (_, i) { return i === pg ? "step" : null; });
+      prevB.property("disabled", pg === 0); nextB.property("disabled", pg === NP - 1);
+      d3.select("#tl-range").text(PAGES[pg].label);
     }
+    var narrowMode = false, car = null;
+    function go(k) {
+      k = Math.max(0, Math.min(NP - 1, k));
+      if (k === pg) return;
+      pg = k; closeCard(); updateUI();
+      if (narrowMode && car) car.scrollTo({ left: pg * car.clientWidth, behavior: R.reduced ? "auto" : "smooth" });
+      else drawNow("play");
+    }
+    updateUI();
 
-    /* ---------- orizzontale ---------- */
-    function drawDesktop(W, phase) {
+    /* ---------- orizzontale: layout di una finestra ---------- */
+    function layoutDesktop(W, p) {
       var LH = 15, gutter = 52, mr = 10;
-      var x = d3.scaleTime().domain([T0, T1]).range([gutter, W - mr]);
-      var track = {};
+      var x = d3.scaleTime().domain([p.s, p.e]).range([gutter, W - mr]);
+      var evsAll = eventsFor(p), track = {};
       ["Stato", "Cosa nostra"].forEach(function (k) {
-        var evs = events.filter(function (e) { return e.track === k; });
+        var evs = evsAll.filter(function (e) { return e.track === k; });
         evs.forEach(function (e) { e.xd = x(e.date); if (e.end) e.xe = x(e.end); });
         var maxOff = dodge(evs, function (e) { return e.xd; });
         var items = evs.filter(function (e) { return e.main; }).map(function (e) {
           var an = ANNO[e.iso], lines = [{ t: e.title, c: labelCls(e) }];
-          if (an) wrapLines(an, 160, "tl-lab-sub").forEach(function (l) { lines.push({ t: l, c: "tl-lab-sub" }); });
+          if (an) wrapLines(an, 170, "tl-lab-sub").forEach(function (l) { lines.push({ t: l, c: "tl-lab-sub" }); });
           var w = d3.max(lines, function (l) { return mw(l.t, l.c); });
           e.lines = lines; e.anno = !!an;
           return { id: e.id, xd: e.xd, w: w, span: lines.length };
@@ -360,108 +412,103 @@
         var lv = d3.max(Object.keys(plan), function (id) { return plan[id].a + plan[id].span; }) || 0;
         track[k] = { evs: evs, plan: plan, lv: lv, band: Math.max(10, maxOff + 7) };
       });
-
-      // fasce: etichette brevi in alto
-      bands.forEach(function (b) { b.x0 = x(b.s); b.x1 = x(b.e); b.lines = wrapLines(b.name, Math.max(40, b.x1 - b.x0 - 14), "tl-phase"); });
-      var phaseH = d3.max(bands, function (b) { return b.lines.length; }) * 13 + 12;
-
+      var bs = bandsFor(p);
+      bs.forEach(function (b) { b.x0 = x(b.s); b.x1 = x(b.e); b.lines = wrapLines(b.name, Math.max(40, b.x1 - b.x0 - 14), "tl-phase"); });
+      var phaseH = (d3.max(bs, function (b) { return b.lines.length; }) || 1) * 13 + 12;
       var S = track["Stato"], C = track["Cosa nostra"];
-      var yZS = phaseH + 8 + S.lv * LH;                       // base del livello 0 dello Stato
-      var cS = yZS + 4 + S.band;
-      var midTop = cS + S.band + 8;
-      var cC = midTop + 28 + C.band;
-      var yZC = cC + C.band + 4;                              // cima del livello 0 di Cosa nostra
+      var yZS = phaseH + 8 + S.lv * LH, cS = yZS + 4 + S.band, midTop = cS + S.band + 8;
+      var cC = midTop + 28 + C.band, yZC = cC + C.band + 4;
       var H = Math.ceil(yZC + C.lv * LH + 12);
+      return { p: p, W: W, LH: LH, gutter: gutter, mr: mr, x: x, S: S, C: C, bs: bs, yZS: yZS, cS: cS, midTop: midTop, cC: cC, yZC: yZC, H: H, evsAll: evsAll };
+    }
 
+    function renderDesktop(Lo, phase) {
+      var W = Lo.W, LH = Lo.LH, gutter = Lo.gutter, mr = Lo.mr, x = Lo.x, p = Lo.p;
+      var S = Lo.S, C = Lo.C, cS = Lo.cS, cC = Lo.cC, yZS = Lo.yZS, yZC = Lo.yZC, midTop = Lo.midTop, H = Lo.H;
+      var nS = Lo.evsAll.filter(function (e) { return e.track === "Stato"; }).length, nC = Lo.evsAll.length - nS;
       var svg = d3.select(host).insert("svg", ".r-tip").attr("class", "tl-svg").attr("width", W).attr("height", H)
         .attr("role", "img")
-        .attr("aria-label", "Cronologia dal 1981 al 1993 su due binari paralleli: " + nS + " fatti dello Stato e " + nC + " di Cosa nostra, in cinque fasi. Il Maxiprocesso va dal 1986 al 1992, la Cassazione conferma le condanne il 30 gennaio 1992 e comincia la stagione delle stragi.");
-      svg.append("title").text("Il Maxiprocesso di Palermo: le mosse dello Stato e le risposte di Cosa nostra, 1981-1993");
+        .attr("aria-label", "Cronologia dal " + p.label.replace("–", " al ") + " su due binari paralleli: " + nS + " fatti dello Stato e " + nC + " di Cosa nostra.");
+      svg.append("title").text("Il Maxiprocesso di Palermo: le mosse dello Stato e le risposte di Cosa nostra, " + p.label);
 
-      // bande di fase
       var gB = svg.append("g");
-      bands.forEach(function (b, i) {
+      Lo.bs.forEach(function (b, i) {
         var g = gB.append("g");
         g.append("rect").attr("x", b.x0).attr("y", 0).attr("width", Math.max(0, b.x1 - b.x0)).attr("height", H)
-          .style("fill", "var(--grey-5)").style("opacity", i % 2 ? 0.28 : 0.5);
+          .style("fill", "var(--grey-5)").style("opacity", b.i % 2 ? 0.28 : 0.5);
         var t = g.append("text").attr("class", "tl-phase").attr("x", b.x0 + 7).attr("y", 14);
         b.lines.forEach(function (l, k) { t.append("tspan").attr("x", b.x0 + 7).attr("dy", k ? 13 : 0).text(l); });
         appear(g, phase, i * 90, 400);
       });
 
-      // binari, nomi, anni
       svg.append("line").attr("x1", gutter).attr("x2", W - mr).attr("y1", cS).attr("y2", cS).style("stroke", "var(--blue-5)").attr("stroke-width", 3).attr("stroke-linecap", "round");
       svg.append("line").attr("x1", gutter).attr("x2", W - mr).attr("y1", cC).attr("y2", cC).style("stroke", "var(--grey-4)").style("opacity", 0.6).attr("stroke-width", 3).attr("stroke-linecap", "round");
       svg.append("text").attr("class", "tl-name").attr("x", 0).attr("y", cS + 4).style("fill", "var(--blue)").text("Lo Stato");
       var cn = svg.append("text").attr("class", "tl-name").attr("x", 0).style("fill", "var(--grey-dark)");
       cn.append("tspan").attr("x", 0).attr("y", cC - 2).text("Cosa");
       cn.append("tspan").attr("x", 0).attr("y", cC + 12).text("nostra");
-      var yrs = d3.range(1981, 1994);
-      yrs.forEach(function (yr, i) {
-        var xt = Math.round(x(new Date(yr, 0, 1))) + 0.5;
-        svg.append("line").attr("x1", xt).attr("x2", xt).attr("y1", midTop + 2).attr("y2", midTop + 8).style("stroke", "var(--ink-2)");
-        svg.append("text").attr("class", "tl-year").attr("x", xt + (i === 0 ? 0 : 0)).attr("y", midTop + 21)
-          .attr("text-anchor", i === 0 ? "start" : "middle").text(yr);
-      });
 
-      // eventi
+      // anni (etichetta al centro dell'anno) e tacche mensili
+      for (var yr = p.s.getFullYear(); yr < p.e.getFullYear(); yr++) {
+        var xa = x(new Date(yr, 0, 1)), xb = x(new Date(yr + 1, 0, 1));
+        svg.append("line").attr("x1", Math.round(xa) + 0.5).attr("x2", Math.round(xa) + 0.5).attr("y1", midTop + 1).attr("y2", midTop + 9).style("stroke", "var(--ink-2)");
+        for (var mo = 1; mo < 12; mo++) {
+          var xm = Math.round(x(new Date(yr, mo, 1))) + 0.5;
+          svg.append("line").attr("x1", xm).attr("x2", xm).attr("y1", midTop + 1).attr("y2", midTop + (mo % 3 === 0 ? 6 : 4)).style("stroke", "var(--grey-4)");
+        }
+        svg.append("text").attr("class", "tl-year").attr("x", (xa + xb) / 2).attr("y", midTop + 22).attr("text-anchor", "middle").text(yr);
+      }
+      var xe = Math.round(x(p.e)) + 0.5;
+      svg.append("line").attr("x1", xe).attr("x2", xe).attr("y1", midTop + 1).attr("y2", midTop + 9).style("stroke", "var(--ink-2)");
+
       var gE = svg.append("g");
       [S, C].forEach(function (T, ti) {
         var dir = ti === 0 ? -1 : 1, cy = ti === 0 ? cS : cC;
         T.evs.forEach(function (e) {
-          var g = gE.append("g").attr("class", "tl-ev").attr("tabindex", 0).attr("role", "button")
-            .attr("aria-label", dateLabel(e) + ": " + e.title);
-          var yd = cy + e.off, r = e.main ? 5.5 : 3.6;
-          var pl = T.plan[e.id];
+          var g = gE.append("g").attr("class", "tl-ev").attr("tabindex", 0).attr("role", "button").attr("aria-label", dateLabel(e) + ": " + e.title);
+          var yd = cy + e.off, r = e.main ? 5.5 : 3.6, pl = T.plan[e.id];
           if (pl) {
-            var levelEdge = dir < 0 ? (yZS - pl.a * LH) : (yZC + pl.a * LH);           // lato vicino al binario
+            var levelEdge = dir < 0 ? (yZS - pl.a * LH) : (yZC + pl.a * LH);
             var farEdge = levelEdge + dir * pl.span * LH;
             var tx = pl.anchor === "S" ? e.xd + 6 : e.xd - 6;
-            g.append("line").attr("class", "tl-pole").attr("x1", e.xd).attr("x2", e.xd)
-              .attr("y1", yd + dir * (r + 1)).attr("y2", farEdge - dir * 2);
+            g.append("line").attr("class", "tl-pole").attr("x1", e.xd).attr("x2", e.xd).attr("y1", yd + dir * (r + 1)).attr("y2", farEdge - dir * 2);
             if (e.anno) g.append("circle").attr("cx", e.xd).attr("cy", farEdge - dir * 2).attr("r", 2).style("fill", "var(--ink-2)");
             e.lines.forEach(function (ln, k) {
               var top = dir < 0 ? farEdge + k * LH : levelEdge + k * LH;
-              g.append("text").attr("class", ln.c).attr("x", tx).attr("y", top + 11)
-                .attr("text-anchor", pl.anchor === "S" ? "start" : "end").text(ln.t);
+              g.append("text").attr("class", ln.c).attr("x", tx).attr("y", top + 11).attr("text-anchor", pl.anchor === "S" ? "start" : "end").text(ln.t);
             });
           }
           if (e.end) {
-            g.append("line").attr("x1", e.xd).attr("x2", e.xe).attr("y1", yd).attr("y2", yd)
-              .attr("class", "tl-dot").style("stroke", dotFill(e)).attr("stroke-width", 4).attr("stroke-linecap", "round");
+            g.append("line").attr("x1", e.xd).attr("x2", e.xe).attr("y1", yd).attr("y2", yd).attr("class", "tl-dot").style("stroke", dotFill(e)).attr("stroke-width", 4).attr("stroke-linecap", "round");
             g.append("line").attr("class", "tl-hit").attr("x1", e.xd).attr("x2", e.xe).attr("y1", yd).attr("y2", yd).attr("stroke-width", 24).attr("stroke-linecap", "round");
             e.cx = (e.xd + e.xe) / 2; e.cy = yd;
           } else {
-            g.append("circle").attr("class", "tl-dot").attr("cx", e.xd).attr("cy", yd).attr("r", r)
-              .style("fill", dotFill(e)).style("stroke", "var(--bg)").attr("stroke-width", 1.5);
+            g.append("circle").attr("class", "tl-dot").attr("cx", e.xd).attr("cy", yd).attr("r", r).style("fill", dotFill(e)).style("stroke", "var(--bg)").attr("stroke-width", 1.5);
             g.append("circle").attr("class", "tl-hit").attr("cx", e.xd).attr("cy", yd).attr("r", 12);
             e.cx = e.xd; e.cy = yd;
           }
           wire(g, e, svg);
-          appear(g, phase, 480 + e.rank * 30, 300);
+          appear(g, phase, 380 + (e.rank % 14) * 30, 300);
         });
       });
       svg.on("pointerdown", function (ev) { if (!ev.target.closest || !ev.target.closest(".tl-ev")) closeCard(); });
-      tl = svg;
     }
 
-    /* ---------- verticale (sotto i 520 px) ---------- */
-    function drawNarrow(W, phase) {
-      var ppy = 108, top = 36, bot = 16, yearsX = 50;
-      var xS = 62, xC = Math.round(62 + (W - 62) * 0.5);
-      var H = Math.ceil(top + 13 * ppy + bot);
-      var y = function (d) { return top + (d - T0) / MS_YEAR * ppy; };
-      var svg = d3.select(host).insert("svg", ".r-tip").attr("class", "tl-svg").attr("width", W).attr("height", H)
-        .attr("role", "img")
-        .attr("aria-label", "Cronologia verticale dal 1981 al 1993 su due binari: " + nS + " fatti dello Stato e " + nC + " di Cosa nostra, in cinque fasi.");
-      svg.append("title").text("Il Maxiprocesso di Palermo: le mosse dello Stato e le risposte di Cosa nostra, 1981-1993");
+    /* ---------- verticale (sotto i 520 px): una pagina per finestra, in un carosello ---------- */
+    var PPY = 128, TOP = 36, BOT = 16;
+    function renderNarrowPage(W, p, container, phase) {
+      var xS = 62, xC = Math.round(62 + (W - 62) * 0.5), yearsX = 50;
+      var H = Math.ceil(TOP + p.ny * PPY + BOT), span = p.e - p.s;
+      var y = function (d) { return TOP + (d - p.s) / span * p.ny * PPY; };
+      var evsAll = eventsFor(p);
+      var svg = container.append("svg").attr("class", "tl-svg").attr("width", W).attr("height", H).attr("role", "img")
+        .attr("aria-label", "Cronologia verticale, anni " + p.label.replace("–", " al ") + ", su due binari: Lo Stato e Cosa nostra.");
+      svg.append("title").text("Il Maxiprocesso di Palermo: le mosse dello Stato e le risposte di Cosa nostra, " + p.label);
 
-      // fasce con etichetta ruotata a sinistra
       var gB = svg.append("g");
-      bands.forEach(function (b, i) {
+      bandsFor(p).forEach(function (b, i) {
         var g = gB.append("g"), y0 = y(b.s), y1 = y(b.e);
-        g.append("rect").attr("x", 0).attr("y", y0).attr("width", W).attr("height", y1 - y0)
-          .style("fill", "var(--grey-5)").style("opacity", i % 2 ? 0.28 : 0.5);
+        g.append("rect").attr("x", 0).attr("y", y0).attr("width", W).attr("height", y1 - y0).style("fill", "var(--grey-5)").style("opacity", b.i % 2 ? 0.28 : 0.5);
         var name = b.name, avail = y1 - y0 - 14;
         if (mw(name, "tl-phase") > avail) {
           var ws = b.name.split(" ");
@@ -471,21 +518,23 @@
         g.append("text").attr("class", "tl-phase").attr("transform", "translate(12," + (y1 - 8) + ") rotate(-90)").style("font-size", "10.5px").text(name);
         appear(g, phase, i * 90, 400);
       });
-      // anni
-      d3.range(1981, 1994).forEach(function (yr) {
+      for (var yr = p.s.getFullYear(); yr < p.e.getFullYear(); yr++) {
         var yt = Math.round(y(new Date(yr, 0, 1))) + 0.5;
         svg.append("line").attr("x1", yearsX - 4).attr("x2", W).attr("y1", yt).attr("y2", yt).style("stroke", "var(--rule)").attr("stroke-width", 1);
         svg.append("text").attr("class", "tl-year").attr("x", yearsX - 8).attr("y", yt + 14).attr("text-anchor", "end").text(yr);
-      });
-      // binari e intestazioni
-      svg.append("line").attr("x1", xS).attr("x2", xS).attr("y1", top - 6).attr("y2", H - bot + 6).style("stroke", "var(--blue-5)").attr("stroke-width", 3).attr("stroke-linecap", "round");
-      svg.append("line").attr("x1", xC).attr("x2", xC).attr("y1", top - 6).attr("y2", H - bot + 6).style("stroke", "var(--grey-4)").style("opacity", 0.6).attr("stroke-width", 3).attr("stroke-linecap", "round");
+        for (var mo = 3; mo < 12; mo += 3) {
+          var ym = Math.round(y(new Date(yr, mo, 1))) + 0.5;
+          svg.append("line").attr("x1", yearsX - 4).attr("x2", yearsX).attr("y1", ym).attr("y2", ym).style("stroke", "var(--grey-4)");
+        }
+      }
+      svg.append("line").attr("x1", xS).attr("x2", xS).attr("y1", TOP - 6).attr("y2", H - BOT + 6).style("stroke", "var(--blue-5)").attr("stroke-width", 3).attr("stroke-linecap", "round");
+      svg.append("line").attr("x1", xC).attr("x2", xC).attr("y1", TOP - 6).attr("y2", H - BOT + 6).style("stroke", "var(--grey-4)").style("opacity", 0.6).attr("stroke-width", 3).attr("stroke-linecap", "round");
       svg.append("text").attr("class", "tl-name").attr("x", xS - 5).attr("y", 18).style("fill", "var(--blue)").text("Lo Stato");
       svg.append("text").attr("class", "tl-name").attr("x", xC - 5).attr("y", 18).style("fill", "var(--grey-dark)").text("Cosa nostra");
 
       var gE = svg.append("g");
       [["Stato", xS, xS + 14, xC - 8], ["Cosa nostra", xC, xC + 14, W - 4]].forEach(function (cfg) {
-        var evs = events.filter(function (e) { return e.track === cfg[0]; });
+        var evs = evsAll.filter(function (e) { return e.track === cfg[0]; });
         var xr = cfg[1], xl = cfg[2], wl = cfg[3] - cfg[2];
         evs.forEach(function (e) { e.yd = y(e.date); if (e.end) e.ye = y(e.end); });
         dodge(evs, function (e) { return e.yd; });
@@ -496,7 +545,7 @@
             wrapLines(e.title, wl, labelCls(e)).forEach(function (l) { lines.push({ t: l, c: labelCls(e) }); });
             if (an) wrapLines(an, wl, "tl-lab-sub").forEach(function (l) { lines.push({ t: l, c: "tl-lab-sub" }); });
             var want = e.yd - 8, t0 = Math.max(want, prevBottom + 3);
-            if (t0 - want <= 46 || e.ev || an) { labTop = t0; prevBottom = t0 + lines.length * 14; }
+            if (t0 - want <= 60 || e.ev || an) { labTop = t0; prevBottom = t0 + lines.length * 14; }
           }
           var g = gE.append("g").attr("class", "tl-ev").attr("tabindex", 0).attr("role", "button").attr("aria-label", dateLabel(e) + ": " + e.title);
           var xd = xr + e.off, r = e.main ? 5.5 : 3.6;
@@ -514,11 +563,10 @@
             e.cx = xd; e.cy = e.yd;
           }
           wire(g, e, svg);
-          appear(g, phase, 480 + e.rank * 30, 300);
+          appear(g, phase, 380 + (e.rank % 14) * 30, 300);
         });
       });
       svg.on("pointerdown", function (ev) { if (!ev.target.closest || !ev.target.closest(".tl-ev")) closeCard(); });
-      tl = svg;
     }
 
     /* ---------- scheda ---------- */
@@ -527,15 +575,47 @@
         if (ev && ev.stopPropagation) ev.stopPropagation();
         closeCard();
         selRing = svg.append("circle").attr("class", "tl-sel").attr("cx", e.cx).attr("cy", e.cy).attr("r", e.end ? 9 : (e.main ? 10 : 8));
+        var sb = svg.node().getBoundingClientRect(), hb = host.getBoundingClientRect();
         var html = '<div class="tl-card__meta">' + esc(dateLabel(e)) + '</div>' +
           '<div class="r-tip__t">' + esc(e.title) + '</div>' +
           '<p class="tl-card__txt">' + esc(e.text) + '</p>' +
           '<div class="tl-card__ph">Fase ' + e.fase + ' · ' + esc(FASI[e.fase] || "") + '</div>';
-        tip.show(html, e.cx, e.cy);
+        tip.show(html, sb.left - hb.left + e.cx, sb.top - hb.top + e.cy);
       }
       g.on("pointerdown", open).on("keydown", function (ev) { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); open(ev); } });
     }
 
+    /* ---------- disegno ---------- */
+    function draw(W, phase) {
+      lastW = W; closeCard();
+      d3.select(host).selectAll("svg.tl-svg, div.tl-car").remove();
+      narrowMode = R.isNarrow(W);
+      if (narrowMode) {
+        host.style.minHeight = "";
+        var maxNy = d3.max(PAGES, function (p) { return p.ny; });
+        car = d3.select(host).insert("div", ".r-tip").attr("class", "tl-car").attr("aria-label", "Cronologia: scorri di lato per passare ai tre anni successivi")
+          .style("height", Math.ceil(TOP + maxNy * PPY + BOT) + "px").node();
+        PAGES.forEach(function (p) {
+          var cont = d3.select(car).append("div").attr("class", "tl-pg").style("width", W + "px");
+          renderNarrowPage(W, p, cont, phase);
+        });
+        car.scrollLeft = pg * W;
+        var t;
+        car.addEventListener("scroll", function () {
+          closeCard(); clearTimeout(t);
+          t = setTimeout(function () {
+            var k = Math.round(car.scrollLeft / W);
+            if (k !== pg) { pg = Math.max(0, Math.min(NP - 1, k)); updateUI(); }
+          }, 80);
+        }, { passive: true });
+      } else {
+        car = null;
+        var layouts = PAGES.map(function (p) { return layoutDesktop(W, p); });
+        host.style.minHeight = d3.max(layouts, function (l) { return l.H; }) + "px";   // l'altezza non cambia sfogliando
+        renderDesktop(layouts[pg], phase);
+      }
+    }
+    drawNow = function (phase) { if (lastW) draw(lastW, phase); };
     R.responsive(host, draw);
   }
 })();

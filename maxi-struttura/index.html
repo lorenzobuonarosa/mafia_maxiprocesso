@@ -50,7 +50,35 @@
   .seat:focus-visible .seat__c { stroke: var(--ink); stroke-width: 2.5; }
   .seat__name { font-size: 12px; font-weight: 500; fill: var(--ink); }
   .seat__tag { font-size: 11px; font-weight: 600; fill: var(--ink-2); }
-  #com .r-tip { max-width: 250px; }
+  .seat__sel { fill: none; stroke: var(--ink); stroke-width: 1.5; opacity: 0; pointer-events: none; }
+  .seat.is-sel .seat__sel { opacity: 1; }
+  .seat.is-sel .seat__name { font-weight: 700; }
+  .seat__pulse { fill: none; stroke: var(--blue); stroke-width: 1.5; opacity: 0; pointer-events: none; transform-box: fill-box; transform-origin: center; animation: seat-pulse 2.4s ease-out infinite; }
+  @keyframes seat-pulse { 0% { opacity: 0.7; transform: scale(1); } 70%, 100% { opacity: 0; transform: scale(1.9); } }
+  @media (prefers-reduced-motion: reduce) { .seat__pulse { animation: none; opacity: 0.35; transform: scale(1.5); } }
+
+  /* pannello fisso del posto selezionato */
+  .seat-panel { background: var(--tip-bg); border: 1px solid var(--rule); border-radius: 2px; padding: 12px; display: flex; gap: 12px; align-items: flex-start; font-size: 13px; line-height: 1.4; }
+  .seat-panel.is-fixed { box-sizing: border-box; }
+  .seat-panel.is-empty { align-items: center; justify-content: center; text-align: center; border-style: dashed; }
+  .sp-hint { display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--ink-2); }
+  .sp-hint p { margin: 0; max-width: 200px; }
+  .sp-hint b { color: var(--ink); }
+  .sp-ico { color: var(--blue); animation: sp-nudge 1.8s ease-in-out infinite; }
+  @keyframes sp-nudge { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(3px, 4px); } }
+  @media (prefers-reduced-motion: reduce) { .sp-ico { animation: none; } }
+  .seat-panel.is-two { flex-direction: column; gap: 8px; }
+  .sp-ph { display: flex; gap: 8px; flex: none; }
+  .sp-ph figure { margin: 0; text-align: center; }
+  .sp-ph img { display: block; height: 104px; width: auto; max-width: 96px; object-fit: cover; border-radius: 2px; background: var(--grey-5); filter: grayscale(1); }
+  .is-two .sp-ph img { height: 72px; max-width: 64px; }
+  .sp-ph figcaption { font-size: 11px; color: var(--ink-2); margin-top: 3px; max-width: 80px; }
+  .sp-none { width: 78px; height: 104px; display: grid; place-items: center; background: var(--grey-5); color: var(--grey-3); border-radius: 2px; }
+  .sp-tx { min-width: 0; }
+  .sp-k { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-2); }
+  .sp-n { font-family: var(--serif); font-size: 18px; line-height: 1.15; font-weight: 700; color: var(--title); margin: 2px 0 6px; }
+  .sp-t { margin: 0 0 6px; }
+  .sp-c { margin: 0; font-size: 11px; color: var(--ink-2); }
 </style>
 </head>
 <body>
@@ -81,9 +109,9 @@
   <!-- BLOCCO 2: la Commissione nel 1978 -->
   <section aria-label="La Commissione nel 1978" style="margin-top:44px">
     <p class="r-chart__head" style="margin-top:0">La Commissione nel 1978</p>
-    <p class="r-chart__sub">Un posto per ogni mandamento. In rosso Corleone, la fazione che vincerà la seconda guerra di mafia e prenderà il controllo della Commissione</p>
+    <p class="r-chart__sub">Un posto per ogni mandamento: clicca o tocca un posto per aprire il pannello. In rosso Corleone, la fazione che vincerà la seconda guerra di mafia e prenderà il controllo della Commissione</p>
     <figure class="r-chart" id="com" style="margin-top:8px"></figure>
-    <p class="r-note">Clicca o tocca un posto per vedere il mandamento e il capomandamento. Tra il 1981 e il 1983 la composizione cambia: i capi sconfitti nella guerra di mafia escono di scena e vengono sostituiti da uomini vicini ai Corleonesi.</p>
+    <p class="r-note">Foto: ritratti d'epoca, dove disponibili, di pubblico dominio secondo Wikimedia; per alcuni mandamenti non c'è un'immagine. Tra il 1981 e il 1983 la composizione cambia: i capi sconfitti nella guerra di mafia escono di scena e vengono sostituiti da uomini vicini ai Corleonesi.</p>
   </section>
 
   <footer class="r-foot">
@@ -334,36 +362,65 @@
   /* ======================= BLOCCO 2 ======================= */
   function buildCommission(rows) {
     var host = document.getElementById("com");
-    var tip = R.tooltip(host);
-    var selected = null;
-    function clear() { tip.hide(); if (selected) { selected.classed("is-dimmed", false); selected = null; } }
-    R.dismissOutside(host, clear);
+    var sel = -1, touched = false;
 
     // il segretario (Ciaculli) al centro dell'arco, gli altri nell'ordine del CSV
     var n = rows.length, iPres = Math.max(0, rows.findIndex(function (r) { return /segretario/i.test(r.ruolo); }));
     var slotOf = function (i) { return (i - iPres + Math.floor(n / 2) - 1 + n * 2) % n; };
     var data = rows.map(function (r, i) {
-      return { name: r.mandamento, boss: r.capomandamento, role: r.ruolo, i: i, slot: slotOf(i), corleone: /^corleone$/i.test(r.mandamento), pres: /segretario/i.test(r.ruolo) };
+      return {
+        name: r.mandamento, boss: r.capomandamento, role: r.ruolo, i: i, slot: slotOf(i),
+        corleone: /^corleone$/i.test(r.mandamento), pres: /segretario/i.test(r.ruolo),
+        photos: (r.foto || "").split("|").filter(Boolean), credit: r.credito || ""
+      };
     });
 
-    function html(d) {
-      var rowsT = [["Capomandamento", d.boss]];
-      var note = null;
-      if (d.pres) note = "Presiede la Commissione come " + d.role + ".";
-      if (d.corleone) note = "La fazione che vince la seconda guerra di mafia e prende il controllo della Commissione.";
-      return R.tipHTML({ title: "Mandamento di " + d.name, rows: rowsT, note: note });
+    // ---- pannello fisso (non è un pop-up: sta sempre nello stesso punto) ----
+    var panel = d3.select(host).append("div").attr("class", "seat-panel").attr("aria-live", "polite");
+    var POINTER = '<svg class="sp-ico" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M7 3l0 14 3.6-3.3 2.4 5.5 2.4-1-2.4-5.4 4.9-.4z" fill="currentColor"/></svg>';
+    function renderPanel() {
+      if (sel < 0) {
+        panel.classed("is-empty", true).html('<div class="sp-hint">' + POINTER + '<p><b>Clicca su un posto del tavolo</b> per vedere il mandamento e chi lo rappresentava</p></div>');
+        return;
+      }
+      var d = data[sel], two = d.photos.length > 1, names = d.boss.split(/ e /);
+      var note = d.pres ? "Presiede la Commissione come " + d.role + "." : (d.corleone ? "La fazione che vince la seconda guerra di mafia e prende il controllo della Commissione." : "");
+      var ph = "";
+      if (d.photos.length) {
+        ph = '<div class="sp-ph' + (two ? " is-two" : "") + '">' + d.photos.map(function (f, k) {
+          var nm = two ? names[k] || "" : d.boss;
+          return '<figure><img src="img/' + esc(f) + '" alt="' + esc(nm) + '" loading="lazy">' + (two ? '<figcaption>' + esc(nm) + '</figcaption>' : "") + '</figure>';
+        }).join("") + '</div>';
+      } else {
+        ph = '<div class="sp-ph"><figure><div class="sp-none" role="img" aria-label="Foto non disponibile"><svg viewBox="0 0 40 48" width="34" height="40" aria-hidden="true"><circle cx="20" cy="16" r="8" fill="currentColor"/><path d="M4 46c0-11 7-18 16-18s16 7 16 18z" fill="currentColor"/></svg></div></figure></div>';
+      }
+      panel.classed("is-empty", false).classed("is-two", two).html(
+        ph + '<div class="sp-tx"><div class="sp-k">Mandamento di ' + esc(d.name) + '</div>' +
+        '<div class="sp-n">' + esc(d.boss) + '</div>' +
+        (note ? '<p class="sp-t">' + esc(note) + '</p>' : "") +
+        '<p class="sp-c">' + (d.photos.length ? "Foto: " + esc(d.credit) : "Foto non disponibile") + '</p></div>');
+    }
+    renderPanel();
+
+    function select(i) {
+      sel = i; touched = true;
+      d3.select(host).selectAll(".seat__pulse").remove();
+      d3.select(host).selectAll(".seat")
+        .classed("is-sel", function (d) { return d.i === sel; })
+        .classed("is-dimmed", function (d) { return d.i !== sel; });
+      renderPanel();
+      R.scheduleHeight();
     }
 
     R.responsive(host, function (W, phase) {
-      clear();
-      d3.select(host).select("svg").remove();
+      d3.select(host).select("svg.com-svg").remove();
       var narrow = W < 600, svg, H;
       var ariaTxt = "Commissione provinciale di Palermo nel 1978: " + n + " posti, uno per mandamento. Presiede Michele Greco, capo del mandamento di Ciaculli. Il posto di Corleone è evidenziato in rosso.";
 
       if (!narrow) {
         var R0 = Math.min(W / 2 - 52, 320), cx = W / 2, cy = R0 + 36;
-        H = Math.ceil(cy + 62);
-        svg = d3.select(host).insert("svg", ".r-tip").attr("width", W).attr("height", H).attr("role", "img").attr("aria-label", ariaTxt);
+        H = Math.ceil(cy + 96);
+        svg = d3.select(host).insert("svg", ".seat-panel").attr("class", "com-svg").attr("width", W).attr("height", H).attr("role", "img").attr("aria-label", ariaTxt);
         svg.append("title").text("La Commissione provinciale di Cosa nostra nel 1978");
         var arc = d3.arc().innerRadius(R0 - 5).outerRadius(R0 + 5).startAngle(-Math.PI / 2).endAngle(Math.PI / 2);
         svg.append("path").attr("transform", "translate(" + cx + "," + cy + ")").attr("d", arc()).style("fill", "var(--grey-5)");
@@ -372,24 +429,32 @@
           var th = Math.PI - (d.slot + 0.5) * step;
           d.x = cx + R0 * Math.cos(th); d.y = cy - R0 * Math.sin(th);
         });
+        // pannello al centro dell'arco, sempre nello stesso punto
+        var pw = Math.min(330, Math.round(R0)), ptop = Math.round(cy - R0 * 0.55);
+        panel.classed("is-fixed", true).style("position", "absolute").style("left", Math.round(cx - pw / 2) + "px")
+          .style("top", ptop + "px").style("width", pw + "px").style("min-height", (H - ptop - 4) + "px").style("margin", "0");
       } else {
-        var rowsN = Math.ceil(n / 2), cell = 50, colW = (W) / 2;
+        var rowsN = Math.ceil(n / 2), cell = 50, colW = W / 2;
         H = rowsN * cell + 6;
-        svg = d3.select(host).insert("svg", ".r-tip").attr("width", W).attr("height", H).attr("role", "img").attr("aria-label", ariaTxt);
+        svg = d3.select(host).insert("svg", ".seat-panel").attr("class", "com-svg").attr("width", W).attr("height", H).attr("role", "img").attr("aria-label", ariaTxt);
         svg.append("title").text("La Commissione provinciale di Cosa nostra nel 1978");
         data.forEach(function (d) {
           var k = d.slot; d.col = k % 2; d.row = Math.floor(k / 2);
           d.x = d.col * colW + 16; d.y = d.row * cell + cell / 2 + 3;
         });
+        panel.classed("is-fixed", false).style("position", null).style("left", null).style("top", null).style("width", null).style("min-height", null).style("margin", "12px 0 0");
       }
 
       var g = svg.append("g").selectAll("g").data(data).join("g").attr("class", "seat").attr("tabindex", 0).attr("role", "button")
-        .attr("aria-label", function (d) { return "Mandamento " + d.name + ": " + d.boss; });
+        .attr("aria-label", function (d) { return "Mandamento " + d.name + ": " + d.boss; })
+        .classed("is-sel", function (d) { return d.i === sel; }).classed("is-dimmed", function (d) { return sel >= 0 && d.i !== sel; });
       g.each(function (d, i) {
         var s = d3.select(this);
+        if (!touched) s.append("circle").attr("class", "seat__pulse").attr("cx", d.x).attr("cy", d.y).attr("r", 11).style("animation-delay", (i * 0.18) + "s");
         if (d.pres) s.append("circle").attr("cx", d.x).attr("cy", d.y).attr("r", 17).style("fill", "none").style("stroke", "var(--ink)").attr("stroke-width", 1.25);
         s.append("circle").attr("class", "seat__c").attr("cx", d.x).attr("cy", d.y).attr("r", 11)
           .style("fill", d.corleone ? "var(--red)" : "var(--blue)").style("stroke", "var(--bg)").attr("stroke-width", 2);
+        s.append("circle").attr("class", "seat__sel").attr("cx", d.x).attr("cy", d.y).attr("r", 15);
         var name = s.append("text").attr("class", "seat__name");
         if (!narrow) {
           name.attr("x", d.x).attr("y", d.y + 28).attr("text-anchor", "middle").text(d.name).call(R.wrap, 74, 1.25);
@@ -404,14 +469,9 @@
           if (phase === "play") s.transition().delay(i * 45).duration(350).style("opacity", 1).on("end", function () { d3.select(this).style("opacity", null); });
         }
       });
-      function open(ev, d) {
-        if (ev.stopPropagation) ev.stopPropagation();
-        clear();
-        selected = g; g.classed("is-dimmed", function (o) { return o !== d; });
-        tip.show(html(d), d.x, d.y);
-      }
-      g.on("pointerdown", open).on("keydown", function (ev, d) { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); open(ev, d); } });
-      svg.on("pointerdown", function (ev) { if (!ev.target.closest(".seat")) clear(); });
+      g.on("pointerdown", function (ev, d) { select(d.i); })
+        .on("keydown", function (ev, d) { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); select(d.i); } });
+      R.scheduleHeight();
     });
   }
 })();
