@@ -111,7 +111,7 @@
     <p class="r-chart__head" style="margin-top:0">La Commissione nel 1978</p>
     <p class="r-chart__sub">Un posto per ogni mandamento: clicca o tocca un posto per aprire il pannello. In rosso Corleone, la fazione che vincerà la seconda guerra di mafia e prenderà il controllo della Commissione</p>
     <figure class="r-chart" id="com" style="margin-top:8px"></figure>
-    <p class="r-note">Foto: ritratti d'epoca, dove disponibili, di pubblico dominio secondo Wikimedia; per alcuni mandamenti non c'è un'immagine. Tra il 1981 e il 1983 la composizione cambia: i capi sconfitti nella guerra di mafia escono di scena e vengono sostituiti da uomini vicini ai Corleonesi.</p>
+    <p class="r-note">Foto: ritratti d'epoca, con il credito nel pannello; per alcuni mandamenti non c'è un'immagine. Tra il 1981 e il 1983 la composizione cambia: i capi sconfitti nella guerra di mafia escono di scena e vengono sostituiti da uomini vicini ai Corleonesi.</p>
   </section>
 
   <footer class="r-foot">
@@ -398,7 +398,7 @@
         ph + '<div class="sp-tx"><div class="sp-k">Mandamento di ' + esc(d.name) + '</div>' +
         '<div class="sp-n">' + esc(d.boss) + '</div>' +
         (note ? '<p class="sp-t">' + esc(note) + '</p>' : "") +
-        '<p class="sp-c">' + (d.photos.length ? "Foto: " + esc(d.credit) : "Foto non disponibile") + '</p></div>');
+        (d.photos.length ? (d.credit ? '<p class="sp-c">Foto: ' + esc(d.credit) + '</p>' : "") : '<p class="sp-c">Foto non disponibile</p>') + '</div>');
     }
     renderPanel();
 

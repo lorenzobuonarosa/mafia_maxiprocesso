@@ -30,5 +30,6 @@ Le didascalie di credito stanno nella colonna `credito` di `data/commissione-197
 | Noce | `scaglione.jpg` | Salvatore Scaglione.jpg (Commons) | dominio pubblico, foto diffusa dalla polizia |
 | Resuttana | `madonia.jpg` | Francesco Madonia.jpg (Commons) | dominio pubblico |
 | Partinico | `geraci.jpg` | Antonio Geraci.jpg (en) | PD-Italy |
+| San Giuseppe Jato | `salamone.jpg` | fornita dalla redazione | credito da indicare |
 
-Senza foto: San Giuseppe Jato (Salamone), Partanna (Riccobono), Castronovo di Sicilia (Pizzuto), Pagliarelli (Motisi).
+Senza foto: Partanna (Riccobono), Castronovo di Sicilia (Pizzuto), Pagliarelli (Motisi).
