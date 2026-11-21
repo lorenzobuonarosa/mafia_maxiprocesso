@@ -32,5 +32,6 @@ Le didascalie di credito stanno nella colonna `credito` di `data/commissione-197
 | Partinico | `geraci.jpg` | Antonio Geraci.jpg (en) | PD-Italy |
 | San Giuseppe Jato | `salamone.jpg` | fornita dalla redazione | credito da indicare |
 | Castronovo di Sicilia | `pizzuto.jpg` | fornita dalla redazione | credito da indicare |
+| Pagliarelli | `motisi.jpg` | fornita dalla redazione | credito da indicare |
 
-Senza foto: Partanna (Riccobono), Pagliarelli (Motisi).
+Senza foto: Partanna (Riccobono).
