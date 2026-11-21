@@ -145,7 +145,7 @@
       return '<p class="panel__n">Livello ' + (i + 1) + ' di ' + N + '</p>' +
         '<h2 class="panel__h">' + esc(r.livello) + '</h2><dl>' +
         '<dt>Chi lo sceglie</dt><dd>' + esc(r.chi_lo_sceglie) + '</dd>' +
-        '<dt>Com\'è composto</dt><dd>' + esc(r.composizione) + '</dd>' +
+        (r.composizione ? '<dt>Com\'è composto</dt><dd>' + esc(r.composizione) + '</dd>' : '') +
         '<dt>Che cosa fa</dt><dd>' + esc(r.compiti) + '</dd></dl>';
     });
 
