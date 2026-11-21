@@ -401,7 +401,7 @@
         var evs = evsAll.filter(function (e) { return e.track === k; });
         evs.forEach(function (e) { e.xd = x(e.date); if (e.end) e.xe = x(e.end); });
         var maxOff = dodge(evs, function (e) { return e.xd; });
-        var items = evs.filter(function (e) { return e.main; }).map(function (e) {
+        var items = evs.map(function (e) {
           var an = ANNO[e.iso], lines = [{ t: e.title, c: labelCls(e) }];
           if (an) wrapLines(an, 170, "tl-lab-sub").forEach(function (l) { lines.push({ t: l, c: "tl-lab-sub" }); });
           var w = d3.max(lines, function (l) { return mw(l.t, l.c); });
@@ -541,11 +541,11 @@
         var prevBottom = -1e9;
         evs.forEach(function (e) {
           var an = ANNO[e.iso], lines = [], labTop = null;
-          if (e.main) {
+          {
             wrapLines(e.title, wl, labelCls(e)).forEach(function (l) { lines.push({ t: l, c: labelCls(e) }); });
             if (an) wrapLines(an, wl, "tl-lab-sub").forEach(function (l) { lines.push({ t: l, c: "tl-lab-sub" }); });
             var want = e.yd - 8, t0 = Math.max(want, prevBottom + 3);
-            if (t0 - want <= 60 || e.ev || an) { labTop = t0; prevBottom = t0 + lines.length * 14; }
+            labTop = t0; prevBottom = t0 + lines.length * 14;
           }
           var g = gE.append("g").attr("class", "tl-ev").attr("tabindex", 0).attr("role", "button").attr("aria-label", dateLabel(e) + ": " + e.title);
           var xd = xr + e.off, r = e.main ? 5.5 : 3.6;
