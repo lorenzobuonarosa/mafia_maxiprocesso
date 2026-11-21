@@ -31,5 +31,6 @@ Le didascalie di credito stanno nella colonna `credito` di `data/commissione-197
 | Resuttana | `madonia.jpg` | Francesco Madonia.jpg (Commons) | dominio pubblico |
 | Partinico | `geraci.jpg` | Antonio Geraci.jpg (en) | PD-Italy |
 | San Giuseppe Jato | `salamone.jpg` | fornita dalla redazione | credito da indicare |
+| Castronovo di Sicilia | `pizzuto.jpg` | fornita dalla redazione | credito da indicare |
 
-Senza foto: Partanna (Riccobono), Castronovo di Sicilia (Pizzuto), Pagliarelli (Motisi).
+Senza foto: Partanna (Riccobono), Pagliarelli (Motisi).
